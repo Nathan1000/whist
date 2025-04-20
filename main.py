@@ -147,7 +147,7 @@ if tab == "Game":
             st.session_state.game_over = False
 
 
-        st.markdown("**Enter players in the order of play (exactly 4):**")
+        st.markdown("**Enter players in the order of play. Player 1 is first dealer:**")
 
         col1, col2 = st.columns(2)
 
