@@ -4,6 +4,8 @@ from streamlit_cookies_controller import CookieController
 import json
 import time
 import zlib, base64
+import openai
+
 
 
 PLAYERS = ["Campbell", "Russell", "Nathan", "Dave"]
@@ -44,7 +46,7 @@ def start_fresh():
     for k in list(st.session_state.keys()):
         del st.session_state[k]
     st.session_state.tab = "Game"
-    st.rerun()
+    st.session_state.rerun_pending = True  # defer rerun
 
 def prompt_abandon():
     if COOKIE_KEY in cookies and not st.session_state.get("game_over", False):
@@ -115,6 +117,12 @@ if st.session_state.get("rerun_pending"):
     st.session_state.rerun_pending = False
     st.rerun()
 
+
+if "openai_key" not in st.session_state:
+    st.session_state.openai_key = ""
+
+with st.sidebar.expander("🔑 AI Summary (Optional)"):
+    st.text_input("Enter your OpenAI API key", type="password", key="openai_key")
 
 tab = st.sidebar.radio("Menu", ["Game", "Scores"], key="tab")
 if tab == "Game":
@@ -325,7 +333,7 @@ if tab == "Game":
 if tab == "Scores":
     scores_by_round = st.session_state.get("scores_by_round", [])
     if not scores_by_round:
-        st.write("No scores yet.")
+        st.info("No hands played in this game yet")
     else:
         # Build MultiIndex columns
         rounds = [f"{ROUNDS[i]} {SUITS[i % len(SUITS)]}" for i in range(len(scores_by_round))]
@@ -363,5 +371,36 @@ if tab == "Scores":
             for rank, player, score in rankings:
                 st.markdown(f"**{rank}. {player}** – {score} points")
 
+            if st.session_state.get("round_num", 0) >= len(ROUNDS) and st.session_state.openai_key:
+                st.subheader("📣 Match Summary")
+
+                style = st.selectbox("Choose commentary style", ["Football", "Formula 1"], index=0)
+
+                if style == "Football":
+                    system_prompt = "You're a lively British Premier League football commentator with a flair for drama and humour. Think John Motson meets Match of the Day."
+                else:
+                    system_prompt = "You're a fast-paced, excitable British Formula 1 commentator. Think David Croft with a touch of Martin Brundle, recapping key moments lap by lap."
+
+                prompt = f"""Use dramatic, humorous, and sports-style language to summarise a competitive countdown whist game.
+            Highlight standout performances, tight rounds, unexpected plays, and pivotal moments. Be sure to slag off Russell at any opportunity.
+
+            Here is the full match data:
+            {json.dumps(st.session_state.get("scores_by_round", []), indent=2)}"""
+
+                try:
+                    openai.api_key = st.session_state.openai_key
+                    with st.spinner("Generating post-match summary..."):
+                        response = openai.chat.completions.create(
+                            model="gpt-4-turbo",
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": prompt}
+                            ],
+                            temperature=0.9,
+                        )
+                        st.markdown(response.choices[0].message.content)
+                except Exception as e:
+                    st.error("Error generating summary. Check your API key or try again later.")
+                    st.exception(e)
 
 
