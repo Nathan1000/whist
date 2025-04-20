@@ -336,11 +336,12 @@ if tab == "Scores":
         df.columns = pd.MultiIndex.from_product([PLAYERS, ["Guess", "Score"]])
         # add total row
         totals = {}
+        final_scores={}
         for p in PLAYERS:
             totals[(p, "Guess")] = ""
             totals[(p, "Score")] = df[(p, "Score")].sum()
         df.loc["Total"] = totals
-        st.dataframe(df)
+        st.dataframe(df, height=560)
 
         if st.session_state.get("round_num", 0) >= len(ROUNDS):
             st.subheader("🏆 Final Rankings")
