@@ -327,22 +327,29 @@ if tab == "Scores":
     if not scores_by_round:
         st.write("No scores yet.")
     else:
-        # build MultiIndex columns
+        # Build MultiIndex columns
         rounds = [f"{ROUNDS[i]} {SUITS[i % len(SUITS)]}" for i in range(len(scores_by_round))]
         df = pd.DataFrame(index=rounds)
         for p in PLAYERS:
             df[(p, "Guess")] = [r[p]["guess"] for r in scores_by_round]
             df[(p, "Score")] = [r[p]["score"] for r in scores_by_round]
         df.columns = pd.MultiIndex.from_product([PLAYERS, ["Guess", "Score"]])
-        # add total row
-        totals = {}
-        final_scores={}
+
+        # Add total row
+        totals = {
+            (p, "Guess"): "" for p in PLAYERS
+        }
+        final_scores = {}
         for p in PLAYERS:
-            totals[(p, "Guess")] = ""
-            totals[(p, "Score")] = df[(p, "Score")].sum()
+            player_total = df[(p, "Score")].sum()
+            totals[(p, "Score")] = player_total
+            final_scores[p] = player_total
         df.loc["Total"] = totals
+
+        # Show table
         st.dataframe(df, height=560)
 
+        # Final rankings
         if st.session_state.get("round_num", 0) >= len(ROUNDS):
             st.subheader("🏆 Final Rankings")
             sorted_scores = sorted(final_scores.items(), key=lambda x: x[1], reverse=True)
