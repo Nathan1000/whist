@@ -232,7 +232,8 @@ if tab == "Game":
             for i, player in enumerate(rotated_order):
                 if i == num_players - 1:
                     invalid_guess = cards_this_round - total_so_far
-                    st.info(f" {player} can't guess {invalid_guess}", icon=":material/info:")
+                    if invalid_guess >= 0:
+                        st.info(f"{player} can't guess {invalid_guess}", icon=":material/info:")
                     guess = st.number_input(
                         f"{player}'s guess",
                         min_value=0,
@@ -291,9 +292,9 @@ if tab == "Game":
 
 
             if st.button("Submit Results", disabled=submit_disabled):
-                print("DEBUG: Submit Results clicked")
-                print(f"DEBUG: round_num before submit: {st.session_state.round_num}")
-                print(f"DEBUG: len(ROUNDS): {len(ROUNDS)}")
+                # print("DEBUG: Submit Results clicked")
+                # print(f"DEBUG: round_num before submit: {st.session_state.round_num}")
+                # print(f"DEBUG: len(ROUNDS): {len(ROUNDS)}")
 
                 round_data = {}
                 for player in st.session_state.player_order:
