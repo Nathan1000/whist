@@ -269,7 +269,7 @@ if tab == "Game":
             col1, col2 = st.columns(2)
             with col1:
                 if suit_this_round.startswith("Diamonds") and dealer == "Dave":
-                    dealer_display = "Diamond Dave"
+                    dealer_display = "It's...Diamond Dave!"
                 else:
                     dealer_display = dealer
 
