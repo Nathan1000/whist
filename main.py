@@ -110,7 +110,10 @@ if COOKIE_KEY in cookies:
                 txt = raw
         saved = json.loads(txt)
         for key, val in saved.items():
-            if key not in st.session_state:
+            if key == "game_start_time":
+                if st.session_state.get(key) is None:
+                    st.session_state[key] = val
+            elif key not in st.session_state:
                 st.session_state[key] = val
     except Exception as e:
         st.error("Error restoring game state.")
@@ -184,6 +187,8 @@ if tab == "Game":
             st.session_state.share_url = (
                 "https://whist-score-viewer.streamlit.app"
                 f"?game_id={urllib.parse.quote(st.session_state.game_start_time)}")
+
+            st.session_state.save_cookie = True
 
         st.markdown("**Enter players in the order of play. Player 1 is first dealer:**")
 
@@ -556,3 +561,10 @@ if tab == "Scores":
                     except Exception as e:
                         st.error("Failed to submit scores.")
                         st.exception(e)
+
+if st.session_state.get("game_start_time"):
+    st.markdown(
+        f"<footer style='text-align: center; font-size: 0.75rem; color: gray;'>"
+        f"Game ID: {st.session_state['game_start_time']}</footer>",
+        unsafe_allow_html=True
+    )
