@@ -161,6 +161,7 @@ if st.session_state.get("game_start_time"):
     safe_id = urllib.parse.quote(str(st.session_state["game_start_time"]))
     viewer_url = f"https://whist-score-viewer.streamlit.app/?game_id={safe_id}"
     st.sidebar.markdown(f"[📊 View Live Scores]({viewer_url})")
+    st.sidebar.text_input("Viewer URL", viewer_url, label_visibility="collapsed")
 
 tab = st.sidebar.radio("Menu", ["Game", "Scores"], key="tab")
 if tab == "Game":
