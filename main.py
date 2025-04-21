@@ -7,6 +7,8 @@ import zlib, base64
 import openai
 import requests
 from datetime import datetime
+import urllib.parse
+
 
 
 
@@ -153,6 +155,11 @@ with st.sidebar.expander("🔑 AI Summary (Optional)"):
 with st.sidebar.expander("🎙️ AI Voice (Optional)"):
     st.text_input("Enter your ElevenLabs API key", type="password", key="elevenlabs_key")
 
+if "game_start_time" in st.session_state:
+    safe_id = urllib.parse.quote(st.session_state["game_start_time"])
+    viewer_url = f"https://whist-score-viewer.streamlit.app/?game_id={safe_id}"
+    st.sidebar.markdown(f"[📊 View Live Scores]({viewer_url})")
+
 tab = st.sidebar.radio("Menu", ["Game", "Scores"], key="tab")
 if tab == "Game":
     if "game_started" not in st.session_state:
@@ -169,11 +176,16 @@ if tab == "Game":
 
         def start_game():
             st.session_state.game_started = True
+            st.markdown(
+                f"🔗 [Viewer Link](https://whist-score-viewer.streamlit.app?game_id={st.session_state.game_start_time})")
             st.session_state.round_num = 0
             st.session_state.scores = {p: 0 for p in PLAYERS}
             st.session_state.scores_by_round = []
             st.session_state.game_over = False
             st.session_state.game_start_time = datetime.utcnow().isoformat()
+            st.session_state.share_url = (
+                "https://whist-score-viewer.streamlit.app"
+                f"?game_id={urllib.parse.quote(st.session_state.game_start_time)}")
 
         st.markdown("**Enter players in the order of play. Player 1 is first dealer:**")
 
@@ -216,7 +228,7 @@ if tab == "Game":
     else:
         round_num = st.session_state.round_num
 
-        # ⛔ Don't skip to game over if we're awaiting results
+        #Don't skip to game over if we're awaiting results
         if not st.session_state.get("awaiting_results") and (
                 st.session_state.get("game_over") or round_num >= len(ROUNDS)
         ):
@@ -244,6 +256,7 @@ if tab == "Game":
 
         else:
             st.subheader(f"Round {round_num + 1} | {cards_this_round} Cards | {suit_this_round}")
+
 
         if not st.session_state.get("awaiting_results"):
             st.write("Enter Guesses")
@@ -354,7 +367,15 @@ if tab == "Game":
                 if "scores_by_round" not in st.session_state:
                     st.session_state.scores_by_round = []
                 st.session_state.scores_by_round.append(round_data)
-
+                try:
+                    game_id = st.session_state["game_start_time"]
+                    requests.post(
+                        f"https://gameviewer.nathanamery.workers.dev?game_id={game_id}",
+                        headers={"Content-Type": "application/json"},
+                        json=st.session_state["scores_by_round"]
+                    )
+                except Exception as e:
+                    st.warning(f"Failed to update viewer: {e}")
                 # Save BEFORE incrementing
                 st.session_state.save_cookie = True
                 save_state_to_cookie()
@@ -365,7 +386,6 @@ if tab == "Game":
                 if st.session_state.round_num >= len(ROUNDS):
                     st.session_state.game_over = True
 
-                print(f"DEBUG: round_num after submit: {st.session_state.round_num}")
                 st.rerun()
 
 
