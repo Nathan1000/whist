@@ -268,7 +268,12 @@ if tab == "Game":
 
             col1, col2 = st.columns(2)
             with col1:
-                st.badge(f"Dealer: {dealer} ", icon=":material/hand_gesture:", color="green")
+                if suit_this_round.startswith("Diamonds") and dealer == "Dave":
+                    dealer_display = "Diamond Dave"
+                else:
+                    dealer_display = dealer
+
+                st.badge(f"Dealer: {dealer_display}", icon=":material/hand_gesture:", color="green")
             with col2:
                 st.badge(f"{rotated_order[0]} to lead", icon=":material/counter_1:", color="blue")
 
