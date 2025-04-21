@@ -5,6 +5,8 @@ import json
 import time
 import zlib, base64
 import openai
+import requests
+
 
 
 
@@ -123,6 +125,8 @@ if "openai_key" not in st.session_state:
 
 with st.sidebar.expander("🔑 AI Summary (Optional)"):
     st.text_input("Enter your OpenAI API key", type="password", key="openai_key")
+with st.sidebar.expander("🎙️ AI Voice (Optional)"):
+    st.text_input("Enter your ElevenLabs API key", type="password", key="elevenlabs_key")
 
 tab = st.sidebar.radio("Menu", ["Game", "Scores"], key="tab")
 if tab == "Game":
@@ -134,7 +138,6 @@ if tab == "Game":
 
     if not st.session_state.game_started:
         st.subheader("Start a New Game")
-        col1, col2 = st.columns(2)
         available_players = PLAYERS.copy()
         selected_order = []
 
@@ -149,41 +152,37 @@ if tab == "Game":
 
         st.markdown("**Enter players in the order of play. Player 1 is first dealer:**")
 
-        col1, col2 = st.columns(2)
+
 
         player_order = []
 
-        with col1:
-            player1 = st.selectbox(
-                "Player 1",
-                options=[p for p in PLAYERS],
-                key="player_select_1"
-            )
-            player_order.append(player1)
+        player1 = st.selectbox(
+            "Player 1",
+            options=[p for p in PLAYERS],
+            key="player_select_1"
+        )
+        player_order.append(player1)
 
-        with col2:
-            player2 = st.selectbox(
-                "Player 2",
-                options=[p for p in PLAYERS if p not in player_order],
-                key="player_select_2"
-            )
-            player_order.append(player2)
+        player2 = st.selectbox(
+            "Player 2",
+            options=[p for p in PLAYERS if p not in player_order],
+            key="player_select_2"
+        )
+        player_order.append(player2)
 
-        with col1:
-            player3 = st.selectbox(
-                "Player 3",
-                options=[p for p in PLAYERS if p not in player_order],
-                key="player_select_3"
-            )
-            player_order.append(player3)
+        player3 = st.selectbox(
+            "Player 3",
+            options=[p for p in PLAYERS if p not in player_order],
+            key="player_select_3"
+        )
+        player_order.append(player3)
 
-        with col2:
-            player4 = st.selectbox(
-                "Player 4",
-                options=[p for p in PLAYERS if p not in player_order],
-                key="player_select_4"
-            )
-            player_order.append(player4)
+        player4 = st.selectbox(
+            "Player 4",
+            options=[p for p in PLAYERS if p not in player_order],
+            key="player_select_4"
+        )
+        player_order.append(player4)
 
         st.session_state.player_order = player_order
 
@@ -207,13 +206,16 @@ if tab == "Game":
             st.stop()
         cards_this_round = ROUNDS[round_num]
         suit_this_round = SUITS[round_num % len(SUITS)]
+        col1, col2 = st.columns(2)
 
         if round_num == 9:
             st.subheader(f"Round {round_num + 1} | {cards_this_round} Cards | {suit_this_round}")
-            st.info("Ian's Favourite Round!", icon=":material/info:")
+            with col1:
+                st.info("Ian's Favourite Round!", icon=":material/info:")
         elif round_num == 4:
             st.subheader(f"Round {round_num + 1} | {cards_this_round} Cards | {suit_this_round}")
-            st.info("Ian's second Favourite Round!", icon=":material/info:")
+            with col1:
+                st.info("Ian's second Favourite Round!", icon=":material/info:")
 
         else:
             st.subheader(f"Round {round_num + 1} | {cards_this_round} Cards | {suit_this_round}")
@@ -228,35 +230,39 @@ if tab == "Game":
             # Rotate order so next after dealer starts
             rotated_order = player_order[dealer_index + 1:] + player_order[:dealer_index + 1]
 
-            st.badge(f"Dealer: {dealer} ", icon=":material/hand_gesture:", color="green")
-            st.badge(f"{rotated_order[0]} to lead", icon=":material/counter_1:",  color="blue")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.badge(f"Dealer: {dealer} ", icon=":material/hand_gesture:", color="green")
+            with col2:
+                st.badge(f"{rotated_order[0]} to lead", icon=":material/counter_1:", color="blue")
 
             #st.markdown("**Playing Order:** " + " → ".join(rotated_order))
 
             guesses = {}
             total_so_far = 0
             num_players = len(player_order)
-
-            for i, player in enumerate(rotated_order):
-                if i == num_players - 1:
-                    invalid_guess = cards_this_round - total_so_far
-                    if invalid_guess >= 0:
-                        st.info(f"{player} can't guess {invalid_guess}", icon=":material/info:")
-                    guess = st.number_input(
-                        f"{player}'s guess",
-                        min_value=0,
-                        max_value=cards_this_round,
-                        key=f"guess_{player}",
-                    )
-                else:
-                    guess = st.number_input(
-                        f"{player}'s guess",
-                        min_value=0,
-                        max_value=cards_this_round,
-                        key=f"guess_{player}",
-                    )
-                    total_so_far += guess
-                guesses[player] = guess
+            col1, _ = st.columns([3, 1])  # wider col1
+            with col1:
+                for i, player in enumerate(rotated_order):
+                    if i == num_players - 1:
+                        invalid_guess = cards_this_round - total_so_far
+                        if invalid_guess >= 0:
+                            st.info(f"{player} can't guess {invalid_guess}", icon=":material/info:")
+                        guess = st.number_input(
+                            f"{player}'s guess",
+                            min_value=0,
+                            max_value=cards_this_round,
+                            key=f"guess_{player}",
+                        )
+                    else:
+                        guess = st.number_input(
+                            f"{player}'s guess",
+                            min_value=0,
+                            max_value=cards_this_round,
+                            key=f"guess_{player}",
+                        )
+                        total_so_far += guess
+                    guesses[player] = guess
 
             valid_guesses = (
                     len(guesses) == num_players
@@ -280,14 +286,23 @@ if tab == "Game":
 
             if "tricks_won" not in st.session_state:
                 st.session_state.tricks_won = {}
-
+            col1, col2 = st.columns([3, 1])
             for player in st.session_state.player_order:
-                st.session_state.tricks_won[player] = st.number_input(
-                    f"{player}'s tricks won",
-                    min_value=0,
-                    max_value=ROUNDS[st.session_state.round_num],
-                    key=f"tricks_{player}"
+                with col1:
+
+                    st.session_state.tricks_won[player] = st.number_input(
+                        f"{player}'s tricks won",
+                        min_value=0,
+                        max_value=ROUNDS[st.session_state.round_num],
+                        key=f"tricks_{player}"
                 )
+                with col2:
+                    guess = st.session_state.guesses.get(player, "—")
+                    guess = st.session_state.guesses.get(player, 0)
+                    tricks = st.session_state.tricks_won.get(player, 0)
+                    delta = "✓" if guess == tricks else "✗"
+                    emoji = "✅" if guess == tricks else "❌"
+                    st.metric(label=f"{player}'s Guess:", value=f"{guess} {emoji}")
 
             total_tricks = sum(st.session_state.tricks_won.values())
             cards_this_round = ROUNDS[st.session_state.round_num]
@@ -328,6 +343,7 @@ if tab == "Game":
 
                 print(f"DEBUG: round_num after submit: {st.session_state.round_num}")
                 st.rerun()
+
 
 
 if tab == "Scores":
@@ -371,36 +387,82 @@ if tab == "Scores":
             for rank, player, score in rankings:
                 st.markdown(f"**{rank}. {player}** – {score} points")
 
-            if st.session_state.get("round_num", 0) >= len(ROUNDS) and st.session_state.openai_key:
+            if st.session_state.openai_key:
                 st.subheader("📣 Match Summary")
+
+                if "summaries" not in st.session_state:
+                    st.session_state.summaries = {}
+
+                if "match_commentary" not in st.session_state:
+                    st.session_state.match_commentary = ""
 
                 style = st.selectbox("Choose commentary style", ["Football", "Formula 1"], index=0)
 
-                if style == "Football":
-                    system_prompt = "You're a lively British Premier League football commentator with a flair for drama and humour. Think John Motson meets Match of the Day."
+                if style in st.session_state.summaries:
+                    commentary = st.session_state.summaries[style]
                 else:
-                    system_prompt = "You're a fast-paced, excitable British Formula 1 commentator. Think David Croft with a touch of Martin Brundle, recapping key moments lap by lap."
+                    if style == "Football":
+                        system_prompt = "You're a lively British Premier League football commentator with a flair for drama and humour. Think John Motson meets Match of the Day."
+                    else:
+                        system_prompt = "You're a fast-paced, excitable British Formula 1 commentator. Think David Croft with a touch of Martin Brundle, recapping key moments lap by lap."
 
-                prompt = f"""Use dramatic, humorous, and sports-style language to summarise a competitive countdown whist game.
-            Highlight standout performances, tight rounds, unexpected plays, and pivotal moments. Be sure to slag off Russell at any opportunity.
+                    prompt = f"""Use dramatic, humorous, and sports-style language to summarise a competitive countdown whist game.
+        Highlight standout performances, tight rounds, unexpected plays, and pivotal moments. Be sure to slag off Russell at any opportunity.
 
-            Here is the full match data:
-            {json.dumps(st.session_state.get("scores_by_round", []), indent=2)}"""
+        Here is the full match data:
+        {json.dumps(st.session_state.get("scores_by_round", []), indent=2)}"""
 
-                try:
-                    openai.api_key = st.session_state.openai_key
-                    with st.spinner("Generating post-match summary..."):
-                        response = openai.chat.completions.create(
-                            model="gpt-4-turbo",
-                            messages=[
-                                {"role": "system", "content": system_prompt},
-                                {"role": "user", "content": prompt}
-                            ],
-                            temperature=0.9,
+                    try:
+                        openai.api_key = st.session_state.openai_key
+                        with st.spinner("Generating post-match summary..."):
+                            response = openai.chat.completions.create(
+                                model="gpt-4-turbo",
+                                messages=[
+                                    {"role": "system", "content": system_prompt},
+                                    {"role": "user", "content": prompt}
+                                ],
+                                temperature=0.9,
+                            )
+                            commentary = response.choices[0].message.content
+                            st.session_state.summaries[style] = commentary
+                            st.session_state.match_commentary = commentary
+                    except Exception as e:
+                        st.error("Error generating summary. Check your API key or try again later.")
+                        st.exception(e)
+
+                if st.session_state.match_commentary:
+                    st.markdown(st.session_state.match_commentary)
+
+            if st.session_state.get("match_commentary") and st.session_state.get("elevenlabs_key"):
+                if st.button("🔊 Speak Summary"):
+                    headers = {
+                        "xi-api-key": st.session_state.elevenlabs_key,
+                        "Accept": "audio/mpeg",
+                        "Content-Type": "application/json"
+                    }
+                    payload = {
+                        "text": st.session_state.match_commentary,
+                        "model_id": "eleven_multilingual_v2",
+
+                        "voice_settings": {
+                            "stability": 0.73,
+                            "similarity_boost": 0.75,
+                            "style": 0.06,
+                            "use_speaker_boost": True,
+                            "speed": 1.07
+                        }
+                    }
+
+                    with st.spinner("Generating audio..."):
+                        response = requests.post(
+                            "https://api.elevenlabs.io/v1/text-to-speech/eFsK7V4odsRpqOxGAOc8/stream",
+                            headers=headers,
+                            json=payload
                         )
-                        st.markdown(response.choices[0].message.content)
-                except Exception as e:
-                    st.error("Error generating summary. Check your API key or try again later.")
-                    st.exception(e)
 
+                    if response.ok:
+                        audio_data = response.content
+                        st.audio(audio_data, format="audio/mpeg")
+                    else:
+                        st.error("Failed to get audio from ElevenLabs.")
 
