@@ -6,6 +6,8 @@ import time
 import zlib, base64
 import openai
 import requests
+from datetime import datetime
+
 
 
 
@@ -36,6 +38,7 @@ if "confirm_new" not in st.session_state:
 if "confirm_new" not in st.session_state:
     st.session_state.confirm_new = False
 
+
 def start_fresh():
     # only try removal if it actually exists
     try:
@@ -55,14 +58,35 @@ def prompt_abandon():
         st.session_state.confirm_new = True
     else:
         save_scores()
+        if st.session_state.get("game_over") and not st.session_state.get("scores_submitted"):
+            st.sidebar.warning("Game is over but scores haven't been submitted.")
+            return
         start_fresh()
 
 def cancel_abandon():
     st.session_state.confirm_new = False
     st.session_state.rerun_pending = True
 
-# Primary “New Game?” button
-st.sidebar.button("New Game?", on_click=prompt_abandon)
+col1, col2 = st.sidebar.columns(2)
+
+col1.button("New Game?", on_click=prompt_abandon)
+
+if st.session_state.get("game_started") and not st.session_state.get("game_over"):
+    current = st.session_state.round_num
+
+    round_label = f"Replay Round {current}" if current > 0 else "Replay Round"
+    if col2.button(round_label):
+        if current > 0:
+            st.session_state.round_num = current - 1
+            st.session_state.awaiting_results = False
+            st.session_state.guesses = {}
+            st.session_state.tricks_won = {}
+            if "scores_by_round" in st.session_state and len(st.session_state.scores_by_round) >= current:
+                for player in st.session_state.player_order:
+                    st.session_state.scores[player] -= st.session_state.scores_by_round[current - 1][player]["score"]
+                st.session_state.scores_by_round = st.session_state.scores_by_round[:current - 1]
+            st.session_state.save_cookie = True
+            st.rerun()
 
 # Confirmation UI
 if st.session_state.confirm_new:
@@ -97,6 +121,7 @@ if COOKIE_KEY in cookies:
 def save_state_to_cookie():
     state = {
         "game_started": st.session_state.get("game_started"),
+        "game_start_time": st.session_state.get("game_start_time"),
         "round_num": st.session_state.get("round_num"),
         "player_order": st.session_state.get("player_order"),
         "scores": st.session_state.get("scores"),
@@ -148,7 +173,7 @@ if tab == "Game":
             st.session_state.scores = {p: 0 for p in PLAYERS}
             st.session_state.scores_by_round = []
             st.session_state.game_over = False
-
+            st.session_state.game_start_time = datetime.utcnow().isoformat()
 
         st.markdown("**Enter players in the order of play. Player 1 is first dealer:**")
 
@@ -246,10 +271,9 @@ if tab == "Game":
                 for i, player in enumerate(rotated_order):
                     if i == num_players - 1:
                         invalid_guess = cards_this_round - total_so_far
-                        if invalid_guess >= 0:
-                            st.info(f"{player} can't guess {invalid_guess}", icon=":material/info:")
+                        label = f"{player} (Can't guess {invalid_guess})" if invalid_guess >= 0 else f"{player}'s guess"
                         guess = st.number_input(
-                            f"{player}'s guess",
+                            label,
                             min_value=0,
                             max_value=cards_this_round,
                             key=f"guess_{player}",
@@ -466,3 +490,46 @@ if tab == "Scores":
                     else:
                         st.error("Failed to get audio from ElevenLabs.")
 
+    if st.session_state.get("game_over"):
+        st.subheader("📤 Submit Scores to Sheet")
+
+        with st.expander("Google Sheet Submission"):
+            sheet_id = "1WKkTCiYHrtpOGvTccxDgtlMatEUMY_uaTGOasxxEQy0"
+            password = st.text_input("Enter submission password", type="password", key="sheet_password")
+
+            if st.button("Submit Final Scores to Sheet"):
+                if not password:
+                    st.warning("Password required to submit.")
+                else:
+                    game_start = st.session_state.get("game_start_time", "")
+                    payload = {
+                        "password": password,
+                        "sheet_id": sheet_id,
+                        "scores": [
+                            {
+                                "Player": player,
+                                "Score": int(score),
+                                "Game Start Time": game_start
+                            }
+                            for player, score in final_scores.items()
+                        ]
+                    }
+                    try:
+                        with st.spinner("Submitting scores..."):
+                            res = requests.post(
+                                "https://whist-saver.nathanamery.workers.dev",
+                                headers={"Content-Type": "application/json"},
+                                json=payload
+                            )
+                        if res.status_code == 200:
+                            st.success("✅ Scores submitted successfully!")
+                            st.session_state.scores_submitted = True
+                            st.markdown(f"[View Sheet](https://docs.google.com/spreadsheets/d/{sheet_id})")
+                        elif res.status_code == 207:
+                            st.warning(res.text)
+                            st.markdown(f"[View Sheet](https://docs.google.com/spreadsheets/d/{sheet_id})")
+                        else:
+                            st.error(f"❌ Error: {res.text}")
+                    except Exception as e:
+                        st.error("Failed to submit scores.")
+                        st.exception(e)
