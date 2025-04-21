@@ -12,11 +12,10 @@ import urllib.parse
 
 
 
-
-
 PLAYERS = ["Campbell", "Russell", "Nathan", "Dave"]
 SUITS = ["Hearts ♥️", "Clubs ♣️", "Diamonds ♦️", "Spades ♠️", "No Trumps 🙅🏻"]
 ROUNDS = list(range(7, 0, -1)) + list(range(2, 8))  # 7 to 1, then 2 to 7
+
 
 # Init cookie controller
 controller = CookieController()
@@ -37,8 +36,8 @@ COOKIE_KEY = "whist_state"
 if "confirm_new" not in st.session_state:
     st.session_state.confirm_new = False
 
-if "confirm_new" not in st.session_state:
-    st.session_state.confirm_new = False
+if "game_start_time" not in st.session_state:
+    st.session_state.game_start_time = None
 
 
 def start_fresh():
@@ -155,8 +154,8 @@ with st.sidebar.expander("🔑 AI Summary (Optional)"):
 with st.sidebar.expander("🎙️ AI Voice (Optional)"):
     st.text_input("Enter your ElevenLabs API key", type="password", key="elevenlabs_key")
 
-if "game_start_time" in st.session_state:
-    safe_id = urllib.parse.quote(st.session_state["game_start_time"])
+if st.session_state.get("game_start_time"):
+    safe_id = urllib.parse.quote(str(st.session_state["game_start_time"]))
     viewer_url = f"https://whist-score-viewer.streamlit.app/?game_id={safe_id}"
     st.sidebar.markdown(f"[📊 View Live Scores]({viewer_url})")
 
@@ -176,8 +175,7 @@ if tab == "Game":
 
         def start_game():
             st.session_state.game_started = True
-            st.markdown(
-                f"🔗 [Viewer Link](https://whist-score-viewer.streamlit.app?game_id={st.session_state.game_start_time})")
+
             st.session_state.round_num = 0
             st.session_state.scores = {p: 0 for p in PLAYERS}
             st.session_state.scores_by_round = []
