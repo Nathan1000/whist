@@ -270,7 +270,7 @@ if tab == "Game":
             col1, col2 = st.columns(2)
             with col1:
                 if suit_this_round.startswith("Diamonds") and dealer == "Dave":
-                    dealer_display = "It's...Diamond Dave!"
+                    dealer_display = "It's...♦️Diamond♦️ Dave!"
                 else:
                     dealer_display = dealer
 
@@ -521,43 +521,43 @@ if tab == "Scores":
             sheet_id = "1WKkTCiYHrtpOGvTccxDgtlMatEUMY_uaTGOasxxEQy0"
             password = st.text_input("Enter submission password", type="password", key="sheet_password")
 
-            if not st.session_state.get("scores_submitted"):
-                if st.button("Submit Final Scores to Sheet"):
-                    if not password:
-                        st.warning("Password required to submit.")
-                    else:
-                        game_start = st.session_state.get("game_start_time", "")
-                        payload = {
-                            "password": password,
-                            "sheet_id": sheet_id,
-                            "scores": [
-                                {
-                                    "Player": player,
-                                    "Score": int(score),
-                                    "Game Start Time": game_start
-                                }
-                                for player, score in final_scores.items()
-                            ]
-                        }
-                        try:
-                            with st.spinner("Submitting scores..."):
-                                res = requests.post(
-                                    "https://whist-saver.nathanamery.workers.dev",
-                                    headers={"Content-Type": "application/json"},
-                                    json=payload
-                                )
-                            if res.status_code == 200:
-                                st.success("✅ Scores submitted successfully!")
-                                st.session_state.scores_submitted = True
-                                st.markdown(f"[View Sheet](https://docs.google.com/spreadsheets/d/{sheet_id})")
-                            elif res.status_code == 207:
-                                st.warning(res.text)
-                                st.markdown(f"[View Sheet](https://docs.google.com/spreadsheets/d/{sheet_id})")
-                            else:
-                                st.error(f"❌ Error: {res.text}")
-                        except Exception as e:
-                            st.error("Failed to submit scores.")
-                            st.exception(e)
+            if st.button("Submit Final Scores to Sheet"):
+                if not password:
+                    st.warning("Password required to submit.")
+                else:
+                    game_start = st.session_state.get("game_start_time", "")
+                    payload = {
+                        "password": password,
+                        "sheet_id": sheet_id,
+                        "game_id": game_start,
+
+                        "scores": [
+                            {
+                                "Player": player,
+                                "Score": int(score)
+                            }
+                            for player, score in final_scores.items()
+                        ]
+                    }
+                    try:
+                        with st.spinner("Submitting scores..."):
+                            res = requests.post(
+                                "https://whist-saver.nathanamery.workers.dev",
+                                headers={"Content-Type": "application/json"},
+                                json=payload
+                            )
+                        if res.status_code == 200:
+                            st.success("✅ Scores submitted successfully!")
+                            st.session_state.scores_submitted = True
+                            st.markdown(f"[View Sheet](https://docs.google.com/spreadsheets/d/{sheet_id})")
+                        elif res.status_code == 207:
+                            st.warning(res.text)
+                            st.markdown(f"[View Sheet](https://docs.google.com/spreadsheets/d/{sheet_id})")
+                        else:
+                            st.error(f"❌ Error: {res.text}")
+                    except Exception as e:
+                        st.error("Failed to submit scores.")
+                        st.exception(e)
 
 if st.session_state.get("game_start_time"):
     st.markdown(
