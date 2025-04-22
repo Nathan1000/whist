@@ -180,12 +180,27 @@ if tab == "Game":
             st.session_state.scores_by_round = []
             st.session_state.game_over = False
             st.session_state.game_start_time = datetime.utcnow().isoformat(timespec="milliseconds")
+            game_id = st.session_state.game_start_time
+
             st.session_state.share_url = (
                 "https://whist-score-viewer.streamlit.app"
-                f"?game_id={urllib.parse.quote(st.session_state.game_start_time)}")
+                f"?game_id={urllib.parse.quote(game_id)}"
+            )
+
+            # Link previous game to this one
+            try:
+                latest = requests.get("https://gameviewer.nathanamery.workers.dev/latest")
+                if latest.status_code == 200:
+                    prev_game_id = latest.text.strip()
+                    requests.post(
+                        f"https://gameviewer.nathanamery.workers.dev?game_id={prev_game_id}",
+                        headers={"Content-Type": "application/json"},
+                        json={"next_game_id": game_id}
+                    )
+            except Exception as e:
+                st.warning(f"Failed to link to previous game: {e}")
 
             st.session_state.save_cookie = True
-
         st.markdown("**Enter players in the order of play. Player 1 is first dealer:**")
 
 
