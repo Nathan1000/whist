@@ -155,7 +155,7 @@ with st.sidebar.expander("🎙️ AI Voice (Optional)"):
 if st.session_state.get("game_start_time"):
     safe_id = urllib.parse.quote(str(st.session_state["game_start_time"]))
     viewer_url = f"https://whist-score-viewer.streamlit.app/?game_id={safe_id}"
-    st.sidebar.markdown(f"[📊 View Live Scores]({viewer_url})")
+    #st.sidebar.markdown(f"[📊 View Live Scores]({viewer_url})")
     st.sidebar.text_input("Share this URL with each player", viewer_url)
 
 tab = st.sidebar.radio("Menu", ["Game", "Scores"], key="tab")
@@ -179,7 +179,7 @@ if tab == "Game":
             st.session_state.scores = {p: 0 for p in PLAYERS}
             st.session_state.scores_by_round = []
             st.session_state.game_over = False
-            st.session_state.game_start_time = datetime.utcnow().isoformat()
+            st.session_state.game_start_time = datetime.utcnow().isoformat(timespec="milliseconds")
             st.session_state.share_url = (
                 "https://whist-score-viewer.streamlit.app"
                 f"?game_id={urllib.parse.quote(st.session_state.game_start_time)}")
