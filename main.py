@@ -316,6 +316,23 @@ if tab == "Game":
                     st.session_state.awaiting_results = True
                     st.session_state.save_cookie = True
                     save_state_to_cookie()
+
+                    # Send round context to viewer
+                    try:
+                        viewer_payload = {
+                            "round_num": st.session_state.round_num,
+                            "dealer": st.session_state.player_order[
+                                st.session_state.round_num % len(st.session_state.player_order)],
+                            "guesses": st.session_state.guesses
+                        }
+                        requests.post(
+                            f"https://gameviewer.nathanamery.workers.dev?game_id={st.session_state['game_start_time']}",
+                            headers={"Content-Type": "application/json"},
+                            json=viewer_payload
+                        )
+                    except Exception as e:
+                        st.warning(f"Failed to update viewer state: {e}")
+
                     st.rerun()
 
 
@@ -373,10 +390,17 @@ if tab == "Game":
                 st.session_state.scores_by_round.append(round_data)
                 try:
                     game_id = st.session_state["game_start_time"]
+                    payload = {
+                        "scores_by_round": st.session_state["scores_by_round"],
+                        "round_num": st.session_state.round_num + 1,
+                        "dealer": st.session_state.player_order[
+    (st.session_state.round_num + 1) % len(st.session_state.player_order)
+],
+                    }
                     requests.post(
                         f"https://gameviewer.nathanamery.workers.dev?game_id={game_id}",
                         headers={"Content-Type": "application/json"},
-                        json=st.session_state["scores_by_round"]
+                        json=payload
                     )
                 except Exception as e:
                     st.warning(f"Failed to update viewer: {e}")
@@ -455,7 +479,7 @@ if tab == "Scores":
                         system_prompt = "You're a fast-paced, excitable British Formula 1 commentator. Think David Croft with a touch of Martin Brundle, recapping key moments lap by lap."
 
                     prompt = f"""Use dramatic, humorous, and sports-style language to summarise a competitive countdown whist game.
-        Highlight standout performances, tight rounds, unexpected plays, and pivotal moments. Be sure to slag off Russell at any opportunity.
+        Highlight standout performances, tight rounds, unexpected plays, and pivotal moments. Be aware that Campbell and Russell are scottish brothers, Dave was a postman from Skye and Nathan is English. Be sure to slag off Russell at any opportunity.
 
         Here is the full match data:
         {json.dumps(st.session_state.get("scores_by_round", []), indent=2)}"""
