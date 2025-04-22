@@ -48,7 +48,8 @@ def start_fresh():
     for k in list(st.session_state.keys()):
         del st.session_state[k]
     st.session_state.tab = "Game"
-    st.session_state.rerun_pending = True  # defer rerun
+    st.session_state.rerun_pending = True
+    time.sleep(0.5)# defer rerun
 
 def prompt_abandon():
     if COOKIE_KEY in cookies and not st.session_state.get("game_over", False):
