@@ -472,6 +472,11 @@ if tab == "Scores":
                 rankings.append((current_rank, player, score))
                 last_score = score
                 offset += 1
+
+            # Save rankings to session state
+            st.session_state["final_rankings"] = rankings
+
+            
             for rank, player, score in rankings:
                 st.markdown(f"**{rank}. {player}** – {score} points")
 
@@ -498,7 +503,13 @@ if tab == "Scores":
         Highlight standout performances, tight rounds, unexpected plays, and pivotal moments. Be aware that Campbell and Russell are scottish brothers, Dave was a postman from Skye and Nathan is English. Be sure to slag off Russell at any opportunity.
 
         Here is the full match data:
-        {json.dumps(st.session_state.get("scores_by_round", []), indent=2)}"""
+
+
+         
+{json.dumps({
+    "scores_by_round": st.session_state.get("scores_by_round", []),
+    "final_rankings": st.session_state.get("final_rankings", [])
+}, indent=2)}"""
 
                     try:
                         openai.api_key = st.session_state.openai_key
