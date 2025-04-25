@@ -469,7 +469,7 @@ if tab == "Scores":
             for player, score in sorted_scores:
                 if score != last_score:
                     current_rank = offset
-                rankings.append((current_rank, player, score))
+                rankings.append((current_rank, player, int(score)))
                 last_score = score
                 offset += 1
 
