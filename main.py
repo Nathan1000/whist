@@ -13,7 +13,7 @@ import urllib.parse
 
 
 PLAYERS = ["Campbell", "Russell", "Nathan", "Dave"]
-SUITS = ["Hearts ♥️", "Clubs ♣️", "Diamonds ♦️", "Spades ♠️", "No Trumps 🙅🏻"]
+SUITS = ["Hearts ♥️", "Spades ♠️", "Diamonds ♦️", "Clubs ♣️", "No Trumps 🙅🏻"]
 ROUNDS = list(range(7, 0, -1)) + list(range(2, 8))  # 7 to 1, then 2 to 7
 
 
